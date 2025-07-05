@@ -1,0 +1,1 @@
+Compress-Archive -Path ./exports -Destination ./exports.zip
