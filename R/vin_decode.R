@@ -27,6 +27,9 @@
 #' @importFrom tools file_path_sans_ext
 init_vpic_db <- function(tables_path = "extdata/tables/") {
   con <- DBI::dbConnect(duckdb::duckdb(), ":memory:")
+  if (!"icu" %in% collect(filter(tbl(con, "duckdb_extensions()"), installed))$extension_name) {
+    DBI::dbExecute(con, "INSTALL icu;")
+  }
   
   # Load all CSV tables into DuckDB
   csv_files <- list.files(tables_path, pattern = "\\.csv$", full.names = TRUE)
@@ -692,6 +695,17 @@ lookup_pattern_values <- function(items, con) {
         items$Value[i] <- as.character(items$AttributeId[i])
       })
     }
+
+    # Get Name from Element table
+    element_query <- sprintf("SELECT Name FROM Element WHERE Id = %d", 
+                            items$ElementId[i])
+    element_result <- DBI::dbGetQuery(con, element_query)
+    if (nrow(element_result) > 0 && !is.na(element_result$Name[1])) {
+          element_name <- element_result$Name[1]
+    } else {
+      element_name <- ""
+    }
+    items$AttributeName[i] <- element_name    
   }
   
   return(items)
